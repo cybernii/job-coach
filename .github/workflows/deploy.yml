@@ -98,6 +98,7 @@ jobs:
       - name: Build Next.js frontend
         env:
           NEXT_PUBLIC_API_URL: ${{ steps.tf_outputs.outputs.api_gateway_url }}
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
           BUILD_FOR_AWS: "true"
         run: npm run build
 
