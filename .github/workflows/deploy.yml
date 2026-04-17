@@ -66,12 +66,6 @@ jobs:
         working-directory: infra
         run: terraform init
 
-      - name: Select or create Terraform workspace
-        working-directory: infra
-        run: |
-          terraform workspace select ${{ env.TF_WORKSPACE }} || \
-          terraform workspace new ${{ env.TF_WORKSPACE }}
-
       - name: Terraform Validate
         working-directory: infra
         run: terraform validate
