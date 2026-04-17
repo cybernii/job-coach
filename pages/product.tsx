@@ -64,53 +64,71 @@ export default function Product() {
                 return;
             }
 
-            let buffer = '';
-
-            const apiUrl = process.env.NEXT_PUBLIC_API_URL
+            const isAws = !!process.env.NEXT_PUBLIC_API_URL;
+            const apiUrl = isAws
                 ? `${process.env.NEXT_PUBLIC_API_URL}/api`
                 : '/api';
 
-            await fetchEventSource(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${jwt}`,
-                },
-                body: JSON.stringify({
-                    job_title:        jobTitle,
-                    job_description:  jobDescription,
-                    resume_text:      resumeText,
-                    experience_level: experienceLevel,
-                    target_company:   targetCompany,
-                }),
-                async onopen(response) {
-                    if (!response.ok) {
-                        const text = await response.text();
-                        throw new Error(`HTTP ${response.status}: ${text.slice(0, 200)}`);
-                    }
-                },
-                onmessage(ev) {
-                    buffer += ev.data;
-                    setOutput(buffer);
-                    // Auto-follow the section being generated
-                    if (buffer.includes('## Interview Preparation Tips')) {
-                        setActiveTab('interview');
-                    } else if (buffer.includes('## Cover Letter Draft')) {
-                        setActiveTab('cover');
-                    }
-                },
-                onerror(err) {
-                    console.error('SSE error:', err);
-                    setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
-                    setIsLoading(false);
-                    throw err;
-                },
-                onclose() {
-                    setIsLoading(false);
-                    setActiveTab('bullets'); // Jump back to first tab when done
-                },
+            const body = JSON.stringify({
+                job_title:        jobTitle,
+                job_description:  jobDescription,
+                resume_text:      resumeText,
+                experience_level: experienceLevel,
+                target_company:   targetCompany,
             });
-        } catch {
+
+            const headers = {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${jwt}`,
+            };
+
+            if (isAws) {
+                // AWS Lambda returns a plain JSON response — no streaming
+                const res = await fetch(apiUrl, { method: 'POST', headers, body });
+                if (!res.ok) {
+                    const text = await res.text();
+                    throw new Error(`HTTP ${res.status}: ${text.slice(0, 200)}`);
+                }
+                const data = await res.json();
+                setOutput(data.response ?? '');
+                setActiveTab('bullets');
+                setIsLoading(false);
+            } else {
+                // Vercel returns SSE — stream tokens as they arrive
+                let buffer = '';
+                await fetchEventSource(apiUrl, {
+                    method: 'POST',
+                    headers,
+                    body,
+                    async onopen(response) {
+                        if (!response.ok) {
+                            const text = await response.text();
+                            throw new Error(`HTTP ${response.status}: ${text.slice(0, 200)}`);
+                        }
+                    },
+                    onmessage(ev) {
+                        buffer += ev.data;
+                        setOutput(buffer);
+                        if (buffer.includes('## Interview Preparation Tips')) {
+                            setActiveTab('interview');
+                        } else if (buffer.includes('## Cover Letter Draft')) {
+                            setActiveTab('cover');
+                        }
+                    },
+                    onerror(err) {
+                        console.error('SSE error:', err);
+                        setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
+                        setIsLoading(false);
+                        throw err;
+                    },
+                    onclose() {
+                        setIsLoading(false);
+                        setActiveTab('bullets');
+                    },
+                });
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
             setIsLoading(false);
         }
     };
