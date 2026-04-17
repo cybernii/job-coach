@@ -304,11 +304,7 @@ export default function Product() {
                                         </button>
 
                                         {/* Rendered markdown */}
-                                        <div className="prose prose-sm max-w-none text-gray-700 dark:text-gray-300
-                                            prose-headings:text-gray-800 dark:prose-headings:text-gray-100
-                                            prose-strong:text-gray-800 dark:prose-strong:text-gray-100
-                                            prose-li:my-1 prose-ul:my-2 prose-ol:my-2
-                                            pt-1 pr-16">
+                                        <div className="markdown-content pt-1 pr-16">
                                             <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]}>
                                                 {activeContent}
                                             </ReactMarkdown>
