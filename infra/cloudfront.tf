@@ -51,5 +51,8 @@ resource "aws_cloudfront_distribution" "main" {
     cloudfront_default_certificate = true
   }
 
-  tags = { Project = var.project_name; ManagedBy = "terraform" }
+  tags = {
+    Project   = var.project_name
+    ManagedBy = "terraform"
+  }
 }
