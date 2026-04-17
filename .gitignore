@@ -49,8 +49,6 @@ package/
 
 # Terraform
 .terraform/
-terraform.tfstate
-terraform.tfstate.backup
 *.tfstate*
 crash.log
 
@@ -59,4 +57,5 @@ infra/lambda.zip
 lambda_function.zip
 
 # AWS credentials (never commit)
-*.csv
+*.csv!infra/terraform.tfstate.d/
+!infra/terraform.tfstate.d/**
