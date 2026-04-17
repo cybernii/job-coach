@@ -39,3 +39,24 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.env.local
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+package/
+
+# Terraform
+.terraform/
+terraform.tfstate
+terraform.tfstate.backup
+*.tfstate*
+crash.log
+
+# Lambda build artefact
+infra/lambda.zip
+lambda_function.zip
+
+# AWS credentials (never commit)
+*.csv
