@@ -1,0 +1,12 @@
+# Exclude secrets.py — it shadows Python's built-in secrets module.
+# Starlette does `from secrets import token_hex` at startup, which finds
+# this file instead of stdlib and crashes with ImportError.
+# AWS logic lives in aws_secrets.py instead.
+secrets.py
+
+# AWS Lambda / Terraform artifacts — not needed on Vercel
+server.py
+lambda_handler.py
+aws_secrets.py
+dynamo_memory.py
+infra/
