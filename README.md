@@ -21,13 +21,46 @@ The frontend is built with Next.js and Clerk auth. The backend supports two mode
 
 ## Project Structure
 
-- `pages/` - frontend pages (`index`, `product`, app wrappers)
-- `components/` - shared UI components (pricing/paywall UI)
-- `api/` - Vercel Python backend endpoint
-- `infra/` - Terraform and Lambda packaging assets
-- `server.py` - AWS-targeted FastAPI backend
-- `lambda_handler.py` - Mangum adapter for Lambda
-- `aws_secrets.py`, `dynamo_memory.py` - AWS runtime helpers
+```text
+job-coach/
+├── pages/                          # Next.js pages
+│   ├── _app.tsx                    # App wrapper (Clerk provider, global styles)
+│   ├── _document.tsx               # Custom HTML document shell
+│   ├── index.tsx                   # Landing page
+│   └── product.tsx                 # Main product UI (form + AI output tabs)
+├── components/
+│   └── PricingTable.tsx            # Premium/paywall UI component
+├── api/
+│   ├── index.py                    # Vercel FastAPI endpoint (OpenAI + SSE)
+│   └── requirements.txt            # Python dependencies for Vercel API
+├── infra/                          # Terraform + AWS deployment assets
+│   ├── main.tf                     # Provider/local config
+│   ├── variables.tf                # Terraform input variables
+│   ├── outputs.tf                  # Terraform output values
+│   ├── lambda.tf                   # Lambda + IAM resources
+│   ├── api_gateway.tf              # API Gateway routes/integration
+│   ├── cloudfront.tf               # CloudFront CDN distribution
+│   ├── storage.tf                  # S3, DynamoDB, Secrets Manager
+│   ├── terraform.tfvars            # Environment values
+│   ├── package.sh                  # Lambda packaging script (macOS/Linux)
+│   ├── package.ps1                 # Lambda packaging script (Windows)
+│   └── lambda.zip                  # Packaged Lambda artifact
+├── styles/
+│   └── globals.css                 # Global styles
+├── scripts/
+│   └── generate_code_docs_pdf.py   # Markdown docs to PDF generator
+├── docs/                           # Project documentation artifacts
+├── output/                         # Generated output files (PDF, etc.)
+├── tmp/                            # Temporary files
+├── server.py                       # AWS FastAPI backend (Bedrock mode)
+├── lambda_handler.py               # Lambda handler via Mangum
+├── aws_secrets.py                  # AWS Secrets Manager helper
+├── dynamo_memory.py                # DynamoDB conversation memory helper
+├── next.config.ts                  # Next.js config (Vercel vs AWS build mode)
+├── package.json                    # Node scripts and dependencies
+├── requirements.txt                # Python dependencies for AWS backend packaging
+└── README.md
+```
 
 ## Architecture Flowchart
 
