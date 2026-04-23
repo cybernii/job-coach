@@ -1,40 +1,163 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# JobCoach AI
 
-## Getting Started
+JobCoach AI helps users tailor job applications from a job description and resume.
 
-First, run the development server:
+It generates:
+- tailored resume bullets,
+- a role-specific cover letter draft,
+- interview preparation tips.
+
+The frontend is built with Next.js and Clerk auth. The backend supports two modes:
+- Vercel Python API (`api/index.py`) using OpenAI + SSE streaming.
+- AWS Lambda (`server.py` + `lambda_handler.py`) using Bedrock + optional DynamoDB memory.
+
+## Tech Stack
+
+- Next.js (Pages Router), React, TypeScript
+- Clerk authentication/subscription gating
+- FastAPI (Python backend)
+- OpenAI API (Vercel mode) or AWS Bedrock (AWS mode)
+- Terraform for AWS infra (Lambda, API Gateway, S3, CloudFront, DynamoDB, Secrets Manager)
+
+## Project Structure
+
+- `pages/` - frontend pages (`index`, `product`, app wrappers)
+- `components/` - shared UI components (pricing/paywall UI)
+- `api/` - Vercel Python backend endpoint
+- `infra/` - Terraform and Lambda packaging assets
+- `server.py` - AWS-targeted FastAPI backend
+- `lambda_handler.py` - Mangum adapter for Lambda
+- `aws_secrets.py`, `dynamo_memory.py` - AWS runtime helpers
+
+## Architecture Flowchart
+
+```mermaid
+flowchart TD
+    U[User Browser] --> F[Next.js Frontend<br/>pages/product.tsx]
+    F --> C[Clerk Auth<br/>JWT Token]
+
+    C --> V{Backend Mode}
+
+    V -->|Vercel| API[FastAPI API<br/>api/index.py]
+    API --> OAI[OpenAI]
+    OAI --> API
+    API -->|SSE stream| F
+
+    V -->|AWS| APIGW[API Gateway]
+    APIGW --> L[Lambda + FastAPI<br/>server.py + lambda_handler.py]
+    L --> B[AWS Bedrock]
+    B --> L
+    L --> D[DynamoDB<br/>conversation memory]
+    L --> S[Secrets Manager<br/>runtime config]
+    L -->|JSON response| F
+
+    F --> U
+```
+
+## Local Development
+
+### 1) Install frontend deps
+
+```bash
+npm install
+```
+
+### 2) Install Python deps for Vercel API runtime
+
+```bash
+pip install -r api/requirements.txt
+```
+
+### 3) Set environment variables
+
+For local/Vercel-mode development, set at least:
+
+```bash
+OPENAI_API_KEY=...
+CLERK_JWKS_URL=...
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
+CLERK_SECRET_KEY=...
+```
+
+### 4) Run the app
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`.
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+## Runtime Modes
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+### Vercel mode (default)
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+- Frontend calls `/api`.
+- `api/index.py` validates input, verifies Clerk JWT, and streams response chunks.
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### AWS mode
 
-## Learn More
+- Set `NEXT_PUBLIC_API_URL` to your API Gateway URL in the frontend environment.
+- Frontend will call `${NEXT_PUBLIC_API_URL}/api` and expect JSON (non-streaming).
+- Backend runs in Lambda via `server.py` and can persist sessions in DynamoDB.
 
-To learn more about Next.js, take a look at the following resources:
+## Build for AWS Static Hosting
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+`next.config.ts` switches behavior with `BUILD_FOR_AWS=true`:
+- enables static export (`output: 'export'`)
+- writes output to `out/` for S3/CloudFront hosting
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Example:
 
-## Deploy on Vercel
+```bash
+BUILD_FOR_AWS=true npm run build
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Infrastructure (Terraform)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+Terraform lives in `infra/` and provisions:
+- Lambda + IAM
+- API Gateway HTTP API
+- S3 static website bucket
+- CloudFront distribution
+- DynamoDB table (conversation memory + TTL)
+- Secrets Manager config secret
+
+Typical flow:
+
+```bash
+cd infra
+terraform init
+terraform workspace new dev   # first time only
+terraform workspace select dev
+terraform apply
+```
+
+## Packaging Lambda
+
+From project root:
+
+- macOS/Linux:
+```bash
+bash infra/package.sh
+```
+
+- Windows PowerShell:
+```powershell
+.\infra\package.ps1
+```
+
+This creates `infra/lambda.zip` used by Terraform.
+
+## Useful Commands
+
+```bash
+npm run dev
+npm run build
+npm run start
+npm run lint
+```
+
+## Notes
+
+- `secrets.py` is intentionally a placeholder to avoid naming conflicts with Python's built-in `secrets` module.
+- Generated documentation artifacts are under `docs/`, `output/`, and `tmp/`.
